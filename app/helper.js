@@ -66,7 +66,6 @@ class YoutubeGrabberHelper {
     const channelMetaData = response.data[1].response.metadata.channelMetadataRenderer
     const channelName = channelMetaData.title
     const channelVideoData = response.data[1].response.contents.twoColumnBrowseResultsRenderer.tabs[1].tabRenderer.content.sectionListRenderer.contents[0].itemSectionRenderer.contents[0].gridRenderer
-
     if (typeof (channelVideoData) === 'undefined') {
       // Channel has no videos
       return {
@@ -120,6 +119,7 @@ class YoutubeGrabberHelper {
       video = obj.gridVideoRenderer
     }
 
+    const ytOriginal = typeof (video.topStandaloneBadge) !== 'undefined'
     let title = video.title.simpleText
     const statusRenderer = video.thumbnailOverlays[0].thumbnailOverlayTimeStatusRenderer
 
@@ -190,7 +190,8 @@ class YoutubeGrabberHelper {
       lengthSeconds: lengthSeconds,
       liveNow: liveNow,
       premiere: premiere,
-      premium: premium
+      premium: premium,
+      ytOriginal: ytOriginal
     }
   }
 
