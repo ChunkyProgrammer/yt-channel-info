@@ -4,6 +4,23 @@ describe('Getting channel info', () => {
     const parameters = { channelId: 'UCfMJ2MchTSW2kWaT0kK94Yw', channelIdType: 1 }
     return ytch.getChannelInfo(parameters).then((data) => {
       expect(data.isVerified).toBe(true)
+      expect(data.author).toBeTruthy()
+      expect(data.authorId).toBeTruthy()
+      expect(data.authorUrl).toBeTruthy()
+      expect(data.authorBanners).toBeTruthy()
+      expect(data.authorThumbnails).toBeTruthy()
+      expect(data.description).toBeTruthy()
+      expect(data.subscriberText).toBeTruthy()
+      expect(data.subscriberCount).toBeTruthy()
+      expect(data.isFamilyFriendly).toBeTruthy()
+      expect(data.relatedChannels).toBeTruthy()
+      expect(data.allowedRegions).toBeTruthy()
+      expect(data.tags).toBeTruthy()
+      expect(data.channelIdType).toBeTruthy()
+      expect(data.channelTabs).toBeTruthy()
+      expect(data.channelLinks).toBeTruthy()
+      expect(data.channelLinks.primaryLinks).toBeTruthy()
+      expect(data.channelLinks.secondaryLinks).toBeTruthy()
     })
   })
 
@@ -50,6 +67,7 @@ describe('Getting channel info', () => {
       expect(data.channelTabs.length).toBe(3)
     })
   })
+
   test('Deleted channel', () => {
     const parameters = { channelId: 'UC59AcfHD5jOGqTxb-zAsahw', channelIdType: 1 }
     return ytch.getChannelVideos(parameters).then((data) => {

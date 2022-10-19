@@ -16,55 +16,41 @@ class YoutubeGrabber {
     const ytGrabHelp = YoutubeGrabberHelper.create(httpAgent)
     const decideResponse = await ytGrabHelp.decideUrlRequestType(channelId, 'channels?flow=grid&view=0&pbj=1', channelIdType)
     const channelPageResponse = decideResponse.response
-    let channelPageDataResponse = channelPageResponse.data.response
-    if (channelPageResponse.data.response === undefined) {
-      channelPageDataResponse = channelPageResponse.data[1].response
-    }
-    let headerLinks
-    if ('c4TabbedHeaderRenderer' in channelPageDataResponse.header) {
-      headerLinks = channelPageDataResponse.header.c4TabbedHeaderRenderer.headerLinks
-    }
+    const channelPageDataResponse = (channelPageResponse?.data?.response ?? channelPageResponse.data[1]).response
+    const headerLinks = channelPageDataResponse?.header?.c4TabbedHeaderRenderer
     const links = {
       primaryLinks: [],
       secondaryLinks: []
     }
-    if (typeof headerLinks !== 'undefined') {
-      const channelHeaderLinksData = headerLinks.channelHeaderLinksRenderer
-      links.primaryLinks = channelHeaderLinksData.primaryLinks.map(x => {
-        const url = x.navigationEndpoint.urlEndpoint.url
-        const match = url.match('&q=(.*)')
-        return {
-          url: match === null ? url : decodeURIComponent(match[1]),
-          icon: x.icon.thumbnails[0].url,
-          title: x.title.simpleText
-        }
-      })
-      if (typeof channelHeaderLinksData.secondaryLinks !== 'undefined') {
-        links.secondaryLinks = channelHeaderLinksData.secondaryLinks.map(x => {
-          const url = x.navigationEndpoint.urlEndpoint.url
-          const match = url.match('&q=(.*)')
-          return {
-            url: match === null ? url : decodeURIComponent(match[1]),
-            icon: x.icon.thumbnails[0].url,
-            title: x.title.simpleText
-          }
-        })
+    const channelHeaderLinksData = headerLinks?.channelHeaderLinksRenderer
+    links.primaryLinks = (channelHeaderLinksData?.primaryLinks ?? []).map(x => {
+      const url = x.navigationEndpoint.urlEndpoint.url
+      const match = url.match('&q=(.*)')
+      return {
+        url: match === null ? url : decodeURIComponent(match[1]),
+        icon: x.icon.thumbnails[0].url,
+        title: x.title.simpleText
       }
-    }
-
-    if (typeof (channelPageDataResponse.alerts) !== 'undefined') {
+    })
+    links.secondaryLinks = (channelHeaderLinksData?.secondaryLinks ?? []).map(x => {
+      const url = x.navigationEndpoint.urlEndpoint.url
+      const match = url.match('&q=(.*)')
+      return {
+        url: match === null ? url : decodeURIComponent(match[1]),
+        icon: x.icon.thumbnails[0].url,
+        title: x.title.simpleText
+      }
+    })
+    if (channelPageDataResponse?.alerts) {
       return {
         alertMessage: channelPageDataResponse.alerts[0].alertRenderer.text.simpleText
       }
     }
 
     const channelMetaData = channelPageDataResponse?.metadata?.channelMetadataRenderer
-    let channelHeaderData = channelPageDataResponse.header.c4TabbedHeaderRenderer
-    if (!channelHeaderData) {
-      channelHeaderData = channelPageDataResponse.header.carouselHeaderRenderer.contents[1].topicChannelDetailsRenderer
-      //  = topicChannelDetailsRenderer
-    }
-    const headerTabs = channelPageDataResponse.contents.twoColumnBrowseResultsRenderer.tabs
+    const channelHeaderData = channelPageDataResponse?.header?.c4TabbedHeaderRenderer ??
+      channelPageDataResponse.header.carouselHeaderRenderer.contents[1].topicChannelDetailsRenderer
+    const headerTabs = channelPageDataResponse?.contents?.twoColumnBrowseResultsRenderer?.tabs ?? []
     const channelTabs = headerTabs
       .filter(tab => tab.tabRenderer !== undefined && tab.tabRenderer !== null)
       .map(tab => tab.tabRenderer.title)
@@ -76,41 +62,24 @@ class YoutubeGrabber {
     }
     let relatedChannels = []
     let relatedChannelsContinuation = null
-
-    if (typeof (featuredChannels.gridRenderer) !== 'undefined') {
-      relatedChannels = featuredChannels.gridRenderer.items.filter((channel) => {
-        return typeof (channel.gridChannelRenderer) !== 'undefined'
-      }).map((channel) => {
-        return ytGrabHelp.parseFeaturedChannel(channel.gridChannelRenderer)
-      })
-
-      const continuationData = featuredChannels.gridRenderer.items
-
-      const continuationItem = continuationData.filter((item) => {
-        return typeof (item.continuationItemRenderer) !== 'undefined'
-      })
-
-      if (typeof continuationItem !== 'undefined' && typeof continuationItem[0] !== 'undefined') {
-        relatedChannelsContinuation = continuationItem[0].continuationItemRenderer.continuationEndpoint.continuationCommand.token
+    relatedChannels = (featuredChannels?.gridRenderer?.items ?? []).filter((channel) => {
+      if (channel.continuationItemRenderer) {
+        relatedChannelsContinuation = channel
       }
-    }
+      return typeof (channel.gridChannelRenderer) !== 'undefined'
+    }).map((channel) => {
+      return ytGrabHelp.parseFeaturedChannel(channel.gridChannelRenderer)
+    })
 
     let subscriberText
     if (channelHeaderData.subscriberCountText) {
-      if (typeof (channelHeaderData.subscriberCountText.runs) !== 'undefined') {
-        subscriberText = channelHeaderData.subscriberCountText.runs[0].text
-      } else {
-        subscriberText = channelHeaderData.subscriberCountText.simpleText
-      }
+      subscriberText = channelHeaderData?.subscriberCountText?.simpleText ??
+        channelHeaderData?.subscriberCountText?.runs[0].text
     } else {
       subscriberText = '0 subscribers'
     }
 
-    let bannerThumbnails = null
-
-    if (typeof (channelHeaderData.banner) !== 'undefined') {
-      bannerThumbnails = channelHeaderData.banner.thumbnails
-    }
+    const bannerThumbnails = channelHeaderData?.banner?.thumbnails ?? null
 
     const subscriberSplit = subscriberText.split(' ')
     const subscriberMultiplier = subscriberSplit[0].substring(subscriberSplit[0].length - 1).toLowerCase()
