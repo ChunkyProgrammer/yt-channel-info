@@ -72,9 +72,27 @@ class YoutubeGrabberHelper {
     }
     const videoTab = YoutubeGrabberHelper.findTab(channelPageDataResponse.contents.twoColumnBrowseResultsRenderer.tabs)
 
+    const channelInfo = {
+      channelId: channelId,
+      channelName: channelName
+    }
+
+    let latestVideos
     let channelVideoData
     if (videoTab && 'sectionListRenderer' in videoTab.tabRenderer.content) {
-      channelVideoData = videoTab.tabRenderer.content.sectionListRenderer.contents[0].itemSectionRenderer.contents[0].gridRenderer
+      channelVideoData = videoTab.tabRenderer.content.sectionListRenderer.contents[0].itemSectionRenderer.contents[0].gridRenderer.items
+      latestVideos = channelVideoData.filter((item) => {
+        return typeof (item.continuationItemRenderer) === 'undefined'
+      }).map((item) => {
+        return this.parseVideo(item, channelInfo)
+      })
+    } else if (videoTab && 'richGridRenderer' in videoTab.tabRenderer.content) {
+      channelVideoData = videoTab.tabRenderer.content.richGridRenderer.contents
+      latestVideos = channelVideoData.filter((item) => {
+        return typeof (item.continuationItemRenderer) === 'undefined'
+      }).map(e => {
+        return this.parseVideo(e.richItemRenderer.content, channelInfo)
+      })
     }
     if (typeof (channelVideoData) === 'undefined') {
       // Channel has no videos
@@ -86,24 +104,13 @@ class YoutubeGrabberHelper {
 
     let continuation = null
 
-    const continuationItem = channelVideoData.items.filter((item) => {
+    const continuationItem = channelVideoData.filter((item) => {
       return typeof (item.continuationItemRenderer) !== 'undefined'
     })
 
     if (continuationItem.length > 0) {
       continuation = continuationItem[0].continuationItemRenderer.continuationEndpoint.continuationCommand.token
     }
-
-    const channelInfo = {
-      channelId: channelId,
-      channelName: channelName
-    }
-
-    const latestVideos = channelVideoData.items.filter((item) => {
-      return typeof (item.continuationItemRenderer) === 'undefined'
-    }).map((item) => {
-      return this.parseVideo(item, channelInfo)
-    })
 
     return {
       items: latestVideos,
